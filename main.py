@@ -1,27 +1,49 @@
-from typing import Union
+# Author: Juan Carlos Delgado Gonzalez
+ 
 
+from typing import List,Union
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, json, Field 
+from functools import reduce
 
 app = FastAPI()
 
+#class definition to receive the data from the post in a list of orders
+class order(List):
+    id: int
+    item: str
+    quantity: int
+    price: float
+    status: str
+
+# class to receive the all data from the post
+# this include the list for recieved order and the criterial params for select data in calculation proccess
 
 class Item(BaseModel):
-    name: str
-    price: float
-    is_offer: Union[bool, None] = None
-
+    orders: order
+    criterion: str
+    
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"WellCome": "Implementation FastApi for Coding exercise"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.post("/solution")
+def process( params: Item):
+    return process_orders(params.orders,params.criterion)
 
 
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    return {"item_name": item.name, "item_id": item_id}
+# function or method for calculation proccess
+# in the case that someone price contain negative value this return message with alert
+def process_orders(orders,criterion):
+    filtered = orders   
+    if criterion != 'all':
+       filtered = list(filter(lambda x: x['status'] == criterion, filtered))
+    
+    
+    negative_exist = filter( lambda x: x['price'] < 0,  filtered) 
+    if len(list(negative_exist)) > 0:
+       return " there are negative element in data "
+
+    return round(reduce( lambda tot,v: tot + v['price'],filtered,0),2)
