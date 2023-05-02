@@ -1,27 +1,42 @@
-from typing import Union
-
+from typing import List,Union
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, json, Field 
+from functools import reduce
 
 app = FastAPI()
 
 
-class Item(BaseModel):
-    name: str
+class order(List):
+    id: int
+    item: str
+    quantity: int
     price: float
-    is_offer: Union[bool, None] = None
+    status: str
 
+
+class Item(BaseModel):
+    orders: order
+    criterion: str
+    
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.post("/solution")
+def process( params: Item):
+    return process_orders(params.orders,params.criterion)
+   
 
+def process_orders(orders,criterion):
+    filtered = orders   
+    if criterion != 'all':
+       filtered = list(filter(lambda x: x['status'] == criterion, filtered))
+    
+    
+    negative_exist = filter( lambda x: x['price'] < 0,  filtered) 
+    if len(list(negative_exist)) > 0:
+       return " there are negative element in data "
 
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    return {"item_name": item.name, "item_id": item_id}
+    return round(reduce( lambda tot,v: tot + v['price'],filtered,0),2)
